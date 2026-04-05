@@ -1,0 +1,453 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ExamSphere | Modern Exam Management System</title>
+    <!-- Tailwind CSS + Font Awesome + Google Fonts (Inter) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            background: linear-gradient(145deg, #f4f7fc 0%, #eef2f6 100%);
+        }
+        /* Glass morphism cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 1.75rem;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .stat-card {
+            transition: all 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.15);
+        }
+        .tab-active {
+            background: #1e3a8a !important;
+            color: white !important;
+            box-shadow: 0 6px 14px -6px #1e3a8a;
+        }
+        input, select, textarea:focus {
+            outline: none;
+            ring: 2px solid #3b82f6;
+            border-color: #3b82f6;
+        }
+        .db-console {
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Fira Code', 'SF Mono', monospace;
+            font-size: 0.8rem;
+            border-radius: 1rem;
+        }
+        /* custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-6 antialiased">
+
+<div class="max-w-7xl mx-auto">
+    <!-- Header with brand and DB status -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
+                <i class="fas fa-graduation-cap text-blue-600"></i> ExamSphere
+            </h1>
+            <p class="text-gray-500 mt-1">Complete exam lifecycle • Full CRUD • Built‑in database simulation</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <div class="bg-white/80 backdrop-blur rounded-full px-4 py-2 text-sm shadow-sm flex items-center gap-2">
+                <i class="fas fa-database text-green-600"></i>
+                <span class="font-mono text-gray-700">localStorage DB</span>
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            </div>
+            <button id="globalSyncBtn" class="bg-white hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-medium shadow-sm transition"><i class="fas fa-sync-alt"></i> Sync</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats Cards (dynamic) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div class="stat-card bg-gradient-to-br from-blue-50 to-white rounded-2xl p-5 shadow-sm border border-blue-100">
+            <div class="flex justify-between items-start"><div><p class="text-gray-500 text-sm">Total Exams</p><p class="text-3xl font-bold text-blue-700" id="statTotalExams">0</p></div><i class="fas fa-file-alt text-3xl text-blue-300"></i></div>
+        </div>
+        <div class="stat-card bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-5 shadow-sm border border-emerald-100">
+            <div class="flex justify-between"><div><p class="text-gray-500 text-sm">Total Students</p><p class="text-3xl font-bold text-emerald-700" id="statTotalStudents">0</p></div><i class="fas fa-users text-3xl text-emerald-300"></i></div>
+        </div>
+        <div class="stat-card bg-gradient-to-br from-purple-50 to-white rounded-2xl p-5 shadow-sm border border-purple-100">
+            <div class="flex justify-between"><div><p class="text-gray-500 text-sm">Results Recorded</p><p class="text-3xl font-bold text-purple-700" id="statTotalResults">0</p></div><i class="fas fa-clipboard-list text-3xl text-purple-300"></i></div>
+        </div>
+        <div class="stat-card bg-gradient-to-br from-amber-50 to-white rounded-2xl p-5 shadow-sm border border-amber-100">
+            <div class="flex justify-between"><div><p class="text-gray-500 text-sm">Pass Rate</p><p class="text-3xl font-bold text-amber-700" id="statPassRate">0%</p></div><i class="fas fa-chart-line text-3xl text-amber-300"></i></div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs (modern design) -->
+    <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-2 mb-6 sticky top-0 bg-white/70 backdrop-blur-md z-10 rounded-t-2xl p-1">
+        <button data-tab="exams" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-200 transition-all"><i class="fas fa-file-alt mr-2"></i> Exams</button>
+        <button data-tab="students" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-200 transition-all"><i class="fas fa-users mr-2"></i> Students</button>
+        <button data-tab="results" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-200 transition-all"><i class="fas fa-chart-line mr-2"></i> Results</button>
+        <button data-tab="dbconnect" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-200 transition-all"><i class="fas fa-plug mr-2"></i> Database Connectivity</button>
+        <button data-tab="analytics" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-gray-700 hover:bg-gray-200 transition-all"><i class="fas fa-chart-pie mr-2"></i> Analytics</button>
+    </div>
+
+    <!-- ============================= EXAMS PANEL ============================= -->
+    <div id="examsPanel" class="tab-panel glass-card p-5 md:p-6">
+        <div class="flex flex-wrap justify-between items-center mb-5">
+            <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-file-alt text-blue-600 mr-2"></i> Exam Directory</h2>
+            <button id="openExamFormBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-md flex items-center gap-2 transition"><i class="fas fa-plus-circle"></i> New Exam</button>
+        </div>
+        <div id="examFormCard" class="mb-6 bg-white/80 rounded-2xl p-4 border border-blue-200 hidden transition-all">
+            <h3 class="font-semibold text-lg"><span id="examFormTitle">➕ Add Exam</span></h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <input type="text" id="examName" placeholder="Exam Name" class="border rounded-xl px-4 py-2">
+                <input type="date" id="examDate" class="border rounded-xl px-4 py-2">
+                <input type="text" id="examDuration" placeholder="Duration (e.g. 2h 30m)" class="border rounded-xl px-4 py-2">
+                <input type="number" id="examTotalMarks" placeholder="Total Marks" class="border rounded-xl px-4 py-2">
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button id="cancelExamBtn" class="border px-4 py-2 rounded-xl">Cancel</button>
+                <button id="saveExamBtn" class="bg-blue-600 text-white px-5 py-2 rounded-xl">Save Exam</button>
+            </div>
+            <input type="hidden" id="editExamId">
+        </div>
+        <div class="mb-4 flex justify-between items-center">
+            <input type="text" id="searchExam" placeholder="🔍 Search exam..." class="border rounded-xl px-4 py-2 w-64 text-sm">
+            <span class="text-xs text-gray-500" id="examCount"></span>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-800 text-white"> <tr><th class="p-3">ID</th><th>Exam Name</th><th>Date</th><th>Duration</th><th>Total Marks</th><th>Actions</th></tr> </thead>
+                <tbody id="examsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================= STUDENTS PANEL ============================= -->
+    <div id="studentsPanel" class="tab-panel glass-card p-5 md:p-6 hidden">
+        <div class="flex flex-wrap justify-between items-center mb-5">
+            <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-users text-emerald-600 mr-2"></i> Student Registry</h2>
+            <button id="openStudentFormBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl shadow-md"><i class="fas fa-user-plus"></i> Add Student</button>
+        </div>
+        <div id="studentFormCard" class="mb-6 bg-white/80 rounded-2xl p-4 border border-emerald-200 hidden">
+            <h3 class="font-semibold text-lg"><span id="studentFormTitle">📝 Register Student</span></h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <input type="text" id="studentName" placeholder="Full Name" class="border rounded-xl px-4 py-2">
+                <input type="text" id="studentRoll" placeholder="Roll Number" class="border rounded-xl px-4 py-2">
+                <input type="email" id="studentEmail" placeholder="Email" class="border rounded-xl px-4 py-2">
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button id="cancelStudentBtn" class="border px-4 py-2 rounded-xl">Cancel</button>
+                <button id="saveStudentBtn" class="bg-emerald-600 text-white px-5 py-2 rounded-xl">Save Student</button>
+            </div>
+            <input type="hidden" id="editStudentId">
+        </div>
+        <input type="text" id="searchStudent" placeholder="🔍 Search by name or roll..." class="mb-4 border rounded-xl px-4 py-2 w-64 text-sm">
+        <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="w-full text-sm"><thead class="bg-slate-800 text-white"><tr><th class="p-3">ID</th><th>Name</th><th>Roll No</th><th>Email</th><th>Actions</th></tr></thead>
+            <tbody id="studentsTableBody"></tbody></table>
+        </div>
+    </div>
+
+    <!-- ============================= RESULTS PANEL ============================= -->
+    <div id="resultsPanel" class="tab-panel glass-card p-5 md:p-6 hidden">
+        <div class="flex flex-wrap justify-between items-center mb-5">
+            <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-clipboard-list text-purple-600 mr-2"></i> Exam Results</h2>
+            <button id="openResultFormBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl shadow-md"><i class="fas fa-plus"></i> Record Result</button>
+        </div>
+        <div id="resultFormCard" class="mb-6 bg-white/80 rounded-2xl p-4 border border-purple-200 hidden">
+            <h3 class="font-semibold text-lg"><span id="resultFormTitle">✏️ Assign Marks</span></h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                <select id="resultExamId" class="border rounded-xl px-4 py-2 bg-white"><option value="">Select Exam</option></select>
+                <select id="resultStudentId" class="border rounded-xl px-4 py-2 bg-white"><option value="">Select Student</option></select>
+                <input type="number" id="resultMarks" placeholder="Marks Obtained" class="border rounded-xl px-4 py-2">
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button id="cancelResultBtn" class="border px-4 py-2 rounded-xl">Cancel</button>
+                <button id="saveResultBtn" class="bg-purple-600 text-white px-5 py-2 rounded-xl">Save Result</button>
+            </div>
+            <input type="hidden" id="editResultId">
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="w-full text-sm"><thead class="bg-slate-800 text-white"><tr><th>Exam</th><th>Student</th><th>Marks</th><th>Percentage</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="resultsTableBody"></tbody></table>
+        </div>
+    </div>
+
+    <!-- ============================= DATABASE CONNECTIVITY PANEL ============================= -->
+    <div id="dbconnectPanel" class="tab-panel glass-card p-5 md:p-6 hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2"><i class="fas fa-database text-amber-600 mr-2"></i> Database Connectivity Hub</h2>
+        <p class="text-gray-500 mb-5">This system uses <strong>localStorage</strong> (Web Storage API) as a persistent, relational‑like database. All CRUD operations are handled entirely on the front‑end, demonstrating how a real back‑end would interact with a database.</p>
+        <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-5 border border-gray-200 mb-6">
+            <div class="flex flex-wrap gap-3 justify-between items-center">
+                <div><i class="fas fa-plug text-green-600 text-xl mr-2"></i><span class="font-mono font-bold">DB Engine:</span> <span class="bg-slate-800 text-green-300 px-2 py-1 rounded-md text-sm">Web Storage API (localStorage)</span></div>
+                <div><span class="font-mono">📀 DB Name: </span><code class="bg-gray-200 px-2 py-1 rounded">ExamSphereDB_v1</code></div>
+                <button id="testDbConnection" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-1 rounded-full text-sm"><i class="fas fa-vial"></i> Test Connection</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mt-4">
+                <div><i class="fas fa-table text-blue-500"></i> <strong>Tables:</strong> exams, students, results</div>
+                <div><i class="fas fa-key"></i> <strong>Primary Keys:</strong> auto‑increment IDs</div>
+                <div><i class="fas fa-link"></i> <strong>Relations:</strong> results.examId → exams.id, results.studentId → students.id (CASCADE delete)</div>
+            </div>
+            <div class="db-console p-4 mt-4 text-xs overflow-x-auto">
+                <span class="text-yellow-300">// Front‑end Database Adapter (simulated RDBMS)</span><br>
+                const db = {<br>
+                &nbsp;&nbsp;exams: () => JSON.parse(localStorage.getItem('exams') || '[]'),<br>
+                &nbsp;&nbsp;students: () => JSON.parse(localStorage.getItem('students') || '[]'),<br>
+                &nbsp;&nbsp;results: () => JSON.parse(localStorage.getItem('results') || '[]'),<br>
+                &nbsp;&nbsp;save: (key, data) => localStorage.setItem(key, JSON.stringify(data))<br>
+                };<br>
+                ✅ <span class="text-green-300">Connection ACTIVE | Persistence: Enabled | API Latency: &lt; 1ms (simulated)</span>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3 mb-6">
+            <button id="exportDbBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-indigo-700 transition"><i class="fas fa-download"></i> Export DB (JSON)</button>
+            <button id="importDbTrigger" class="bg-gray-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-gray-700 transition"><i class="fas fa-upload"></i> Import Backup</button>
+            <input type="file" id="importFileInput" accept=".json" class="hidden">
+            <button id="loadSampleBtn" class="bg-amber-500 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-amber-600 transition"><i class="fas fa-database"></i> Load Sample Data</button>
+            <button id="resetDbBtn" class="bg-red-500 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-red-600 transition"><i class="fas fa-trash-alt"></i> Reset Database</button>
+        </div>
+        <div class="bg-white/80 rounded-xl p-4 border">
+            <h3 class="font-bold text-gray-700 mb-2"><i class="fas fa-chart-simple"></i> Database Snapshot</h3>
+            <div class="grid grid-cols-3 gap-2 text-center mb-3">
+                <div class="bg-blue-50 p-2 rounded-xl"><span class="font-bold text-2xl" id="statExamsDB">0</span><br>Exams</div>
+                <div class="bg-emerald-50 p-2 rounded-xl"><span class="font-bold text-2xl" id="statStudentsDB">0</span><br>Students</div>
+                <div class="bg-purple-50 p-2 rounded-xl"><span class="font-bold text-2xl" id="statResultsDB">0</span><br>Results</div>
+            </div>
+            <div class="text-xs text-gray-500"><i class="fas fa-info-circle"></i> All changes are instantly persisted. No backend required — ideal for understanding DB integration.</div>
+        </div>
+    </div>
+
+    <!-- ============================= ANALYTICS PANEL ============================= -->
+    <div id="analyticsPanel" class="tab-panel glass-card p-5 md:p-6 hidden">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4"><i class="fas fa-chart-pie text-indigo-600 mr-2"></i> Performance Analytics</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white/80 rounded-2xl p-4 shadow-sm"><h3 class="font-semibold text-lg mb-2">📊 Overall Pass Percentage</h3><div class="text-4xl font-bold text-indigo-600" id="overallPassPercent">0%</div><div class="mt-2 text-sm text-gray-500">Based on all recorded results</div></div>
+            <div class="bg-white/80 rounded-2xl p-4 shadow-sm"><h3 class="font-semibold text-lg mb-2">🏆 Top Performing Student</h3><div id="topStudentInfo" class="text-lg font-medium">-</div><div class="text-sm text-gray-500">Highest average marks</div></div>
+            <div class="bg-white/80 rounded-2xl p-4 col-span-1 md:col-span-2 shadow-sm"><h3 class="font-semibold text-lg mb-2">📈 Exam‑wise Performance</h3><div id="examPerformanceList" class="space-y-2"></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- DATABASE LAYER (localStorage) ----------
+    const KEYS = { EXAMS: 'examsSphere', STUDENTS: 'studentsSphere', RESULTS: 'resultsSphere' };
+    const getExams = () => JSON.parse(localStorage.getItem(KEYS.EXAMS) || '[]');
+    const saveExams = (data) => localStorage.setItem(KEYS.EXAMS, JSON.stringify(data));
+    const getStudents = () => JSON.parse(localStorage.getItem(KEYS.STUDENTS) || '[]');
+    const saveStudents = (data) => localStorage.setItem(KEYS.STUDENTS, JSON.stringify(data));
+    const getResults = () => JSON.parse(localStorage.getItem(KEYS.RESULTS) || '[]');
+    const saveResults = (data) => localStorage.setItem(KEYS.RESULTS, JSON.stringify(data));
+    function nextId(arr) { return arr.length ? Math.max(...arr.map(i=>i.id)) + 1 : 1; }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':(m==='<'?'&lt;':'&gt;')); }
+
+    // sample data
+    function initSampleData() {
+        if(getExams().length === 0) saveExams([
+            { id: 101, name: "Data Structures", date: "2025-05-10", duration: "2.5 hours", totalMarks: 100 },
+            { id: 102, name: "Web Development", date: "2025-05-18", duration: "2 hours", totalMarks: 50 },
+            { id: 103, name: "Database Systems", date: "2025-05-22", duration: "1h30m", totalMarks: 100 }
+        ]);
+        if(getStudents().length === 0) saveStudents([
+            { id: 1, name: "Sophia Martinez", rollNo: "CS2401", email: "sophia@univ.edu" },
+            { id: 2, name: "James Okafor", rollNo: "CS2402", email: "james@univ.edu" },
+            { id: 3, name: "Olivia Chen", rollNo: "CS2403", email: "olivia.c@univ.edu" }
+        ]);
+        if(getResults().length === 0) saveResults([
+            { id: 1001, examId: 101, studentId: 1, marks: 88 },
+            { id: 1002, examId: 102, studentId: 2, marks: 45 },
+            { id: 1003, examId: 101, studentId: 2, marks: 76 },
+            { id: 1004, examId: 103, studentId: 3, marks: 92 }
+        ]);
+    }
+    // update stats on dashboard
+
+    function updateStats() {
+
+        let exams = getExams().length, students = getStudents().length, results = getResults().length;
+
+        document.getElementById('statTotalExams').innerText = exams;
+
+        document.getElementById('statTotalStudents').innerText = students;
+
+        document.getElementById('statTotalResults').innerText = results;
+
+        document.getElementById('statExamsDB').innerText = exams;
+
+        document.getElementById('statStudentsDB').innerText = students;
+
+        document.getElementById('statResultsDB').innerText = results;
+
+        let passCount = 0;
+
+        getResults().forEach(r => { let exam = getExams().find(e => e.id === r.examId); if(exam && (r.marks / exam.totalMarks) * 100 >= 40) passCount++; });
+
+        let passRate = results ? ((passCount / results)*100).toFixed(1) : 0;
+
+        document.getElementById('statPassRate').innerText = `${passRate}%`;
+
+    }
+
+
+
+    // ----- Exams CRUD -----
+
+    function renderExams() { let exams = getExams(); let search = document.getElementById('searchExam')?.value.toLowerCase() || ''; if(search) exams = exams.filter(e => e.name.toLowerCase().includes(search)); document.getElementById('examCount').innerText = `${exams.length} exam(s)`;
+
+        let tbody = document.getElementById('examsTableBody'); if(!tbody) return; if(!exams.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">No exams</td></tr>'; return; }
+
+        tbody.innerHTML = exams.map(e => `<tr class="border-b hover:bg-gray-50"><td class="p-3">${e.id}</td><td class="p-3 font-medium">${escapeHtml(e.name)}</td><td class="p-3">${e.date}</td><td class="p-3">${e.duration}</td><td class="p-3">${e.totalMarks}</td><td class="p-3 flex gap-2"><button class="editExamBtn text-blue-600" data-id="${e.id}"><i class="fas fa-edit"></i></button><button class="deleteExamBtn text-red-500" data-id="${e.id}"><i class="fas fa-trash-alt"></i></button></td></tr>`).join('');
+
+        document.querySelectorAll('.editExamBtn').forEach(btn => btn.addEventListener('click', () => editExamById(parseInt(btn.dataset.id))));
+
+        document.querySelectorAll('.deleteExamBtn').forEach(btn => btn.addEventListener('click', () => deleteExamById(parseInt(btn.dataset.id))));
+
+    }
+
+    function editExamById(id) { let exam = getExams().find(e=>e.id===id); if(exam) { document.getElementById('examName').value = exam.name; document.getElementById('examDate').value = exam.date; document.getElementById('examDuration').value = exam.duration; document.getElementById('examTotalMarks').value = exam.totalMarks; document.getElementById('editExamId').value = exam.id; document.getElementById('examFormTitle').innerText = '✏️ Edit Exam'; document.getElementById('examFormCard').classList.remove('hidden'); } }
+
+    function deleteExamById(id) { if(confirm('Delete exam? Linked results will be removed.')) { saveExams(getExams().filter(e=>e.id!==id)); saveResults(getResults().filter(r=>r.examId!==id)); renderAll(); if(currentTab==='exams') renderExams(); hideExamForm(); } }
+
+    function saveExamHandler() { let id = document.getElementById('editExamId').value; let name = document.getElementById('examName').value.trim(); let date = document.getElementById('examDate').value; let duration = document.getElementById('examDuration').value.trim(); let totalMarks = parseInt(document.getElementById('examTotalMarks').value); if(!name||!date||!duration||isNaN(totalMarks)) { alert('Fill all fields'); return; } let exams = getExams(); if(id) { let idx = exams.findIndex(e=>e.id==id); if(idx!==-1) { exams[idx] = {...exams[idx], name, date, duration, totalMarks}; saveExams(exams); } } else { exams.push({ id: nextId(exams), name, date, duration, totalMarks }); saveExams(exams); } renderAll(); hideExamForm(); if(currentTab==='exams') renderExams(); }
+
+    function hideExamForm() { document.getElementById('examFormCard').classList.add('hidden'); document.getElementById('editExamId').value=''; document.getElementById('examName').value=''; document.getElementById('examDate').value=''; document.getElementById('examDuration').value=''; document.getElementById('examTotalMarks').value=''; document.getElementById('examFormTitle').innerText='➕ Add Exam'; }
+
+
+
+    // ----- Students CRUD -----
+
+    function renderStudents() { let students = getStudents(); let search = document.getElementById('searchStudent')?.value.toLowerCase() || ''; if(search) students = students.filter(s=>s.name.toLowerCase().includes(search)||s.rollNo.toLowerCase().includes(search)); let tbody = document.getElementById('studentsTableBody'); if(!tbody) return; if(!students.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No students</td></tr>'; return; } tbody.innerHTML = students.map(s => `<tr><td class="p-3">${s.id}</td><td class="p-3">${escapeHtml(s.name)}</td><td class="p-3">${escapeHtml(s.rollNo)}</td><td class="p-3">${escapeHtml(s.email)}</td><td class="p-3"><button class="editStudentBtn text-emerald-600" data-id="${s.id}"><i class="fas fa-edit"></i></button> <button class="deleteStudentBtn text-red-500" data-id="${s.id}"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+
+        document.querySelectorAll('.editStudentBtn').forEach(btn=>btn.addEventListener('click',()=>editStudentById(parseInt(btn.dataset.id))));
+
+        document.querySelectorAll('.deleteStudentBtn').forEach(btn=>btn.addEventListener('click',()=>deleteStudentById(parseInt(btn.dataset.id))));
+
+    }
+
+    function editStudentById(id) { let s = getStudents().find(s=>s.id===id); if(s) { document.getElementById('studentName').value = s.name; document.getElementById('studentRoll').value = s.rollNo; document.getElementById('studentEmail').value = s.email; document.getElementById('editStudentId').value = s.id; document.getElementById('studentFormTitle').innerText = '✏️ Edit Student'; document.getElementById('studentFormCard').classList.remove('hidden'); } }
+
+    function deleteStudentById(id) { if(confirm('Delete student and their results?')) { saveStudents(getStudents().filter(s=>s.id!==id)); saveResults(getResults().filter(r=>r.studentId!==id)); renderAll(); if(currentTab==='students') renderStudents(); hideStudentForm(); } }
+
+    function saveStudentHandler() { let id = document.getElementById('editStudentId').value; let name = document.getElementById('studentName').value.trim(); let roll = document.getElementById('studentRoll').value.trim(); let email = document.getElementById('studentEmail').value.trim(); if(!name||!roll||!email) { alert('All fields required'); return; } let students = getStudents(); if(id) { let idx = students.findIndex(s=>s.id==id); if(idx!==-1) { students[idx] = {...students[idx], name, rollNo: roll, email}; saveStudents(students); } } else { students.push({ id: nextId(students), name, rollNo: roll, email }); saveStudents(students); } renderAll(); hideStudentForm(); if(currentTab==='students') renderStudents(); }
+
+    function hideStudentForm() { document.getElementById('studentFormCard').classList.add('hidden'); document.getElementById('editStudentId').value=''; document.getElementById('studentName').value=''; document.getElementById('studentRoll').value=''; document.getElementById('studentEmail').value=''; document.getElementById('studentFormTitle').innerText='📝 Register Student'; }
+
+
+
+    // ----- Results CRUD -----
+
+    function populateResultSelects() { let exams = getExams(); let students = getStudents(); document.getElementById('resultExamId').innerHTML = '<option value="">-- Exam --</option>' + exams.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join(''); document.getElementById('resultStudentId').innerHTML = '<option value="">-- Student --</option>' + students.map(s=>`<option value="${s.id}">${escapeHtml(s.name)} (${s.rollNo})</option>`).join(''); }
+
+    function renderResults() { let results = getResults(); let exams = getExams(); let students = getStudents(); let tbody = document.getElementById('resultsTableBody'); if(!tbody) return; if(!results.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No results</td></tr>'; return; } tbody.innerHTML = results.map(r => { let exam = exams.find(e=>e.id===r.examId); let student = students.find(s=>s.id===r.studentId); let percent = exam ? ((r.marks/exam.totalMarks)*100).toFixed(1) : 0; let status = percent >= 40 ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pass</span>' : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Fail</span>'; return `<tr><td class="p-3">${escapeHtml(exam?.name || 'Deleted')}</td><td class="p-3">${escapeHtml(student?.name || 'Deleted')}</td><td class="p-3">${r.marks}</td><td class="p-3">${percent}%</td><td class="p-3">${status}</td><td class="p-3"><button class="editResultBtn text-purple-600" data-id="${r.id}"><i class="fas fa-edit"></i></button> <button class="deleteResultBtn text-red-500" data-id="${r.id}"><i class="fas fa-trash"></i></button></td></tr>`; }).join('');
+
+        document.querySelectorAll('.editResultBtn').forEach(btn=>btn.addEventListener('click',()=>editResultById(parseInt(btn.dataset.id))));
+
+        document.querySelectorAll('.deleteResultBtn').forEach(btn=>btn.addEventListener('click',()=>deleteResultById(parseInt(btn.dataset.id))));
+
+    }
+
+    function editResultById(id) { let r = getResults().find(r=>r.id===id); if(r) { populateResultSelects(); document.getElementById('resultExamId').value = r.examId; document.getElementById('resultStudentId').value = r.studentId; document.getElementById('resultMarks').value = r.marks; document.getElementById('editResultId').value = r.id; document.getElementById('resultFormTitle').innerText = '✏️ Edit Result'; document.getElementById('resultFormCard').classList.remove('hidden'); } }
+
+    function deleteResultById(id) { if(confirm('Delete this result?')) { saveResults(getResults().filter(r=>r.id!==id)); renderAll(); if(currentTab==='results') renderResults(); } }
+
+    function saveResultHandler() { let id = document.getElementById('editResultId').value; let examId = parseInt(document.getElementById('resultExamId').value); let studentId = parseInt(document.getElementById('resultStudentId').value); let marks = parseFloat(document.getElementById('resultMarks').value); if(isNaN(examId)||isNaN(studentId)||isNaN(marks)) { alert('Complete all fields'); return; } let results = getResults(); if(id) { let idx = results.findIndex(r=>r.id==id); if(idx!==-1) { results[idx] = {...results[idx], examId, studentId, marks}; saveResults(results); } } else { results.push({ id: nextId(results), examId, studentId, marks }); saveResults(results); } renderAll(); hideResultForm(); if(currentTab==='results') renderResults(); }
+
+    function hideResultForm() { document.getElementById('resultFormCard').classList.add('hidden'); document.getElementById('editResultId').value=''; document.getElementById('resultExamId').value=''; document.getElementById('resultStudentId').value=''; document.getElementById('resultMarks').value=''; document.getElementById('resultFormTitle').innerText='✏️ Assign Marks'; }
+
+
+
+    // Analytics
+
+    function renderAnalytics() {
+
+        let results = getResults(); let exams = getExams(); let students = getStudents();
+
+        let totalObtained=0, totalMax=0; results.forEach(r=>{let e=exams.find(ex=>ex.id===r.examId); if(e){totalObtained+=r.marks; totalMax+=e.totalMarks;}});
+
+        let overall = totalMax ? ((totalObtained/totalMax)*100).toFixed(1):0;
+
+        document.getElementById('overallPassPercent').innerText = `${overall}%`;
+
+        let studentAvg = {}; students.forEach(s=>{let t=0,c=0; results.forEach(r=>{if(r.studentId===s.id){let e=exams.find(ex=>ex.id===r.examId); if(e){t+=(r.marks/e.totalMarks)*100; c++;}}}); studentAvg[s.id]=c?t/c:0;});
+
+        let topId = Object.keys(studentAvg).reduce((a,b)=>studentAvg[a]>studentAvg[b]?a:b,null);
+
+        let topStudent = students.find(s=>s.id==topId);
+
+        document.getElementById('topStudentInfo').innerHTML = topStudent ? `${escapeHtml(topStudent.name)} (${studentAvg[topId].toFixed(1)}% avg)` : '—';
+
+        let examPerf = exams.map(e=>{let examResults = results.filter(r=>r.examId===e.id); let avg = examResults.length ? (examResults.reduce((a,b)=>a+b.marks,0)/examResults.length).toFixed(1):0; return `<div class="flex justify-between"><span>${escapeHtml(e.name)}</span><span class="font-medium">Avg: ${avg}/${e.totalMarks}</span></div>`;}).join('');
+
+        document.getElementById('examPerformanceList').innerHTML = examPerf || '<div>No data</div>';
+
+    }
+
+
+
+    // DB admin
+
+    function exportDatabase() { let dump = { exams: getExams(), students: getStudents(), results: getResults() }; let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(dump,null,2)],{type:'application/json'})); a.download = 'examsphere_backup.json'; a.click(); }
+
+    function importDatabase(file) { let reader = new FileReader(); reader.onload = e => { try { let data = JSON.parse(e.target.result); if(data.exams) saveExams(data.exams); if(data.students) saveStudents(data.students); if(data.results) saveResults(data.results); renderAll(); alert('Import successful'); } catch(err) { alert('Invalid file'); } }; reader.readAsText(file); }
+
+    function loadSample() { localStorage.removeItem(KEYS.EXAMS); localStorage.removeItem(KEYS.STUDENTS); localStorage.removeItem(KEYS.RESULTS); initSampleData(); renderAll(); alert('Sample data loaded.'); }
+
+    function resetDatabase() { if(confirm('Wipe entire database?')) { localStorage.clear(); initSampleData(); renderAll(); alert('Database reset.'); } }
+
+
+
+    let currentTab = "exams";
+
+    function renderAll() { renderExams(); renderStudents(); renderResults(); updateStats(); if(currentTab === 'analytics') renderAnalytics(); }
+
+    function switchTab(tabId) { currentTab = tabId; document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden')); document.getElementById(`${tabId}Panel`).classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(btn=>{btn.classList.remove('tab-active','bg-slate-800','text-white'); btn.classList.add('text-gray-700');}); document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('tab-active','bg-slate-800','text-white'); if(tabId === 'results') populateResultSelects(); if(tabId === 'analytics') renderAnalytics(); renderAll(); }
+
+
+
+    window.addEventListener('DOMContentLoaded', () => {
+
+        initSampleData(); renderAll(); switchTab('exams');
+
+        document.getElementById('openExamFormBtn').onclick = () => { hideExamForm(); document.getElementById('examFormCard').classList.remove('hidden'); };
+
+        document.getElementById('cancelExamBtn').onclick = hideExamForm; document.getElementById('saveExamBtn').onclick = saveExamHandler;
+
+        document.getElementById('openStudentFormBtn').onclick = () => { hideStudentForm(); document.getElementById('studentFormCard').classList.remove('hidden'); };
+
+        document.getElementById('cancelStudentBtn').onclick = hideStudentForm; document.getElementById('saveStudentBtn').onclick = saveStudentHandler;
+
+        document.getElementById('openResultFormBtn').onclick = () => { populateResultSelects(); hideResultForm(); document.getElementById('resultFormCard').classList.remove('hidden'); };
+
+        document.getElementById('cancelResultBtn').onclick = hideResultForm; document.getElementById('saveResultBtn').onclick = saveResultHandler;
+
+        document.getElementById('globalSyncBtn').onclick = () => { renderAll(); alert('Data synced'); };
+
+        document.getElementById('testDbConnection').onclick = () => alert('✅ Connection OK. localStorage active. Tables: exams, students, results.');
+
+        document.getElementById('exportDbBtn').onclick = exportDatabase; document.getElementById('importDbTrigger').onclick = () => document.getElementById('importFileInput').click();
+
+        document.getElementById('importFileInput').onchange = (e) => { if(e.target.files.length) importDatabase(e.target.files[0]); e.target.value = ''; };
+
+        document.getElementById('loadSampleBtn').onclick = loadSample; document.getElementById('resetDbBtn').onclick = resetDatabase;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+        document.getElementById('searchExam').addEventListener('input', () => renderExams()); document.getElementById('searchStudent').addEventListener('input', () => renderStudents());
+
+    });
+
+</script>
+
+</body>
+
+</html>
+
+
+  
